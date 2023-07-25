@@ -19,7 +19,7 @@ func main() {
 	//take the name of the file from the argument in the console
 	fileName := os.Args[1]
 	//open the fiel and check for errors
-	file, err := os.Open(fileName)
+	file, err := os.OpenFile(fileName, os.O_RDWR|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("failed to open file:", err)
 	}
@@ -28,9 +28,13 @@ func main() {
 	//read the file line by line calls the solver funtion an check errors
 	scanner := bufio.NewScanner(file)
 	var funtions []string
+	var prettyFormatWritten bool
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		if len(line) == 0 {
+			continue
+		}
 		funtions = append(funtions, line)
 		expAst, err := parser.ParseExpr(line)
 		if err != nil {
@@ -43,10 +47,25 @@ func main() {
 			return
 		}
 		fmt.Println("Result:", result)
-
+		if !prettyFormatWritten {
+			_, err = file.WriteString("------+Result+------\n")
+			if err != nil {
+				panic(err)
+			}
+			prettyFormatWritten = true
+		}
+		_, err = file.WriteString(strconv.FormatFloat(result, 'f', -1, 64) + "\n")
+		if err != nil {
+			panic(err)
+		}
+	}
+	if prettyFormatWritten {
+		_, err = file.WriteString("---------------------\n")
+		if err != nil {
+			panic(err)
+		}
 	}
 	//fmt.Println(funtions[0])
-
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
